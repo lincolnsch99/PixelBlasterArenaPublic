@@ -1,5 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿/// File Name: CameraFollow.cs
+/// File Author(s): Lincoln Schroeder
+/// File Purpose: Simple script just for positioning the camera to follow the player.
+/// 
+/// Date Last Updated: November 8, 2019
+
 using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
@@ -20,7 +24,7 @@ public class CameraFollow : MonoBehaviour
     /// <summary>
     /// FixedUpdate is called every fixed framerate frame.
     /// </summary>
-    void Update()
+    void FixedUpdate()
     {
         GetComponent<Rigidbody2D>().position = Vector3.Lerp(GetComponent<Rigidbody2D>().position, player.GetComponent<Rigidbody2D>().position, lerpAmount);
     }

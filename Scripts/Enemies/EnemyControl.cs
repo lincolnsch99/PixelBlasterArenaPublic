@@ -1,9 +1,17 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿/// File Name: EnemyControl.cs
+/// File Author(s): Lincoln Schroeder
+/// File Purpose: Every GameObject that is representing an enemy has this script attached. This script is used
+/// for monitoring and changing enemy behavior. It also stores necessary data for the enemy, such as health and
+/// damage.
+/// 
+/// Date Last Updated: November 8, 2019
+
 using UnityEngine;
 
 public class EnemyControl : MonoBehaviour
 {
+    [SerializeField]
+    private EnemyType enemyType;
     [SerializeField]
     private float moveSpeed;
     [SerializeField]
@@ -25,6 +33,21 @@ public class EnemyControl : MonoBehaviour
         player = GameObject.FindWithTag("Player");
         playerController = GameObject.Find("PlayerController");
         GetPath();
+    }
+
+    /// <summary>
+    /// FixedUpdate is called every fixed framerate frame.
+    /// </summary>
+    private void FixedUpdate()
+    {
+        if(enemyType == EnemyType.SHREDDER)
+        {
+            transform.GetChild(transform.childCount - 1).Rotate(0, 0, 5);
+        }
+        else if(enemyType == EnemyType.PURSUER)
+        {
+            GetPath();
+        }
     }
 
     /// <summary>
@@ -63,7 +86,7 @@ public class EnemyControl : MonoBehaviour
         {
             for(int i = 0; i < damage; i++)
                 playerController.BroadcastMessage("TakeDamage", SendMessageOptions.DontRequireReceiver);
-            playerController.BroadcastMessage("ApplyDamageForce", this.gameObject, SendMessageOptions.DontRequireReceiver);
+            PlayerControl.ApplyDamageForce(this.gameObject);
         }
     }
 
@@ -88,9 +111,18 @@ public class EnemyControl : MonoBehaviour
     /// <summary>
     /// Getter for this enemy's collision force.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The collision force of this enemy.</returns>
     public int GetCollisionForce()
     {
         return this.collisionForce;
+    }
+
+    /// <summary>
+    /// Setter for this enemy's type.
+    /// </summary>
+    /// <param name="enemyType">The new enemy type.</param>
+    public void SetEnemyType(EnemyType enemyType)
+    {
+        this.enemyType = enemyType;
     }
 }

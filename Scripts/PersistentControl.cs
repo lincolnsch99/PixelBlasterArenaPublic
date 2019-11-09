@@ -1,5 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿/// File Name: PersistentControl.cs
+/// File Author(s): Lincoln Schroeder
+/// File Purpose: The PersistentControl class is used to store data and do operations that require 
+/// continuity throughout all scenes of the game. This script should only be attached to one GameObject.
+/// 
+/// Date Last Updated: November 8, 2019
+
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -9,13 +15,10 @@ public class PersistentControl : MonoBehaviour
     private bool PAUSED;
     private int playerScore;
 
-    // Can be implemented later.
-    /*
+
     [SerializeField]
     private GameObject GameOverScreenPrefab;
-    [SerializeField]
-    private GameObject GameWonScreenPrefab;
-    */
+    
 
     private GameObject loadScreen;
     private Slider loadScreenProgress;
@@ -29,6 +32,10 @@ public class PersistentControl : MonoBehaviour
         routineRunning = false;
     }
 
+    /// <summary>
+    /// Called on the first frame of Instantiation (however this is only called the first time it is 
+    /// instantiated.
+    /// </summary>
     private void Awake()
     {
         DontDestroyOnLoad(this.gameObject);
@@ -133,17 +140,35 @@ public class PersistentControl : MonoBehaviour
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-    // Begins the process to load the desired scene.
-    // @param sceneName: string, the name of the scene to be loaded.
+    /// <summary>
+    /// Begins the process to load a new scene.
+    /// </summary>
+    /// <param name="sceneName">The name of the scene to be loaded.</param>
     public void LoadScene(string sceneName)
     {
-        PAUSED = false;
-        Time.timeScale = 1f;
-        StartCoroutine(LoadSceneAsync(sceneName));
+        bool validSceneName = false;
+        for(int i =0; i < SceneManager.sceneCount; i++)
+        {
+            if (SceneManager.GetSceneAt(i).name == sceneName)
+                validSceneName = true;
+        }
+        if (validSceneName)
+        {
+            PAUSED = false;
+            Time.timeScale = 1f;
+            StartCoroutine(LoadSceneAsync(sceneName));
+        }
+        else
+            Debug.LogError("Invalid scene request. '" + sceneName + "' is not an existing scene.");
     }
 
-    // Handles the fade in and loading bar for the loading screen.
-    // @param sceneName: string, the name of the scene to be loaded.
+    /// <summary>
+    /// Handles the starting process of loading a new scene, including fading to black, and enabling the 
+    /// loading screen. Loads the scene asynchronously.
+    /// </summary>
+    /// <param name="sceneName">The name of the scene to be loaded.</param>
+    /// <returns>Yield return null during fade in process and loading process to return back to code at the
+    /// next frame.</returns>
     IEnumerator LoadSceneAsync(string sceneName)
     {
         routineRunning = true;
@@ -177,37 +202,47 @@ public class PersistentControl : MonoBehaviour
         routineRunning = false;
     }
 
-    // When the player uses a "Quit" button, this method will be called. It is possible to add
-    // necessary processes that must be executed before the application quits, such as saving 
-    // data into files, making sure it is safe to quit from this point, etc. This method IS NOT
-    // called when the player uses other methods to close the application, such as 'ALT+F4', or
-    // the Task Manager.
+    /// <summary>
+    /// When the player uses a "Quit" button, this method will be called. It is possible to add
+    /// necessary processes that must be executed before the application quits, such as saving 
+    /// data into files, making sure it is safe to quit from this point, etc. This method IS NOT
+    /// called when the player uses other methods to close the application, such as 'ALT+F4', or
+    /// the Task Manager.
+    /// </summary>
     public void QuitGame()
     {
         Application.Quit();
     }
 
-    // Specfic function to load the main game scene.
+    /// <summary>
+    /// Specific function to load the game scene.
+    /// </summary>
     public void PlayGame()
     {
         UnPauseGame();
         LoadScene("Game");
     }
 
-    // For the main menu, displays the options screen and disables other screens.
+    /// <summary>
+    /// Used by buttons. Navigates to the Options screen in the main menu.
+    /// </summary>
     public void SelectOptions()
     {
         DisplayMenuElement(2);
     }
 
-    // For the main menu, displays the tutorial screen and disables other screens.
+    /// <summary>
+    /// Used by buttons. Navitgates to the Tutorial screen in the main menu.
+    /// </summary>
     public void SelectTutorial()
     {
         DisplayMenuElement(3);
     }
 
-    // Navigates the player to the main menu, by either loading the main menu scene or switching to the 
-    // main menu screen.
+    /// <summary>
+    /// Navigates the player to the main menu, either by loading the scene, or simply enabling
+    /// the correct canvas.
+    /// </summary>
     public void ToMainMenu()
     {
         if (SceneManager.GetActiveScene().name != "MainMenu")
@@ -220,8 +255,10 @@ public class PersistentControl : MonoBehaviour
             DisplayMenuElement(1);
     }
 
-    // In the list of menu types, displays the desired menu.
-    // @param index: int, the index of the menu to be added.
+    /// <summary>
+    /// Displays the desired menu in the menu children. Used for accessing options, tutorial, and main menu.
+    /// </summary>
+    /// <param name="index"></param>
     private void DisplayMenuElement(int index)
     {
         GameObject menuObject = GameObject.FindWithTag("MainMenu");
@@ -240,18 +277,22 @@ public class PersistentControl : MonoBehaviour
             Debug.LogError("Attempted to load invalid menu index");
     }
 
-    // Increments the player score by the desired amount.
-    // @param amount: int, the amount the score should be incremented (or decremented, if negative).
+    /// <summary>
+    /// Increments the player score by the given amount.
+    /// </summary>
+    /// <param name="amount">the amount that the player score will be increased.</param>
     public void IncrementPlayerScore(int amount)
     {
         playerScore += amount;
     }
 
-    // "Pauses" the game. Time.timeScale changes the speed at which processes are executed, so setting it
-    // to 0 will stop any actions that rely on time. Other scripts that run at runtime should check 
-    // if(PersistentDataObject.IsPaused()) in their update function, so that when the game is paused, 
-    // desired scripts will stop what they're doing. Also enables the cursor to let the player navigate the
-    // pause menu.
+    /// <summary>
+    /// "Pauses" the game. Time.timeScale changes the speed at which processes are executed, so setting it
+    /// to 0 will stop any actions that rely on time. Other scripts that run at runtime should check 
+    /// if(PersistentDataObject.IsPaused()) in their update function, so that when the game is paused, 
+    /// desired scripts will stop what they're doing. Also enables the cursor to let the player navigate the
+    /// pause menu.
+    /// </summary>
     public void PauseGame()
     {
         PAUSED = true;
@@ -259,7 +300,9 @@ public class PersistentControl : MonoBehaviour
         Time.timeScale = 0f;
     }
 
-    // "Unpauses" the game. Reset Time.timescale back to normal and makes the cursor invisible again.
+    /// <summary>
+    /// "Unpauses" the game. Reset Time.timescale back to normal and makes the cursor invisible again.
+    /// </summary>
     public void UnPauseGame()
     {
         PAUSED = false;
@@ -267,43 +310,47 @@ public class PersistentControl : MonoBehaviour
         Time.timeScale = 1f;
     }
 
-    // Lets other scripts know if the game is paused or not.
-    // @return PAUSED: bool, true if the game is paused, false otherwise.
+    /// <summary>
+    /// Used by other scripts. Lets them know whether or not the game is currently paused.
+    /// </summary>
+    /// <returns>True if the game is paused, false otherwise.</returns>
     public bool IsPaused()
     {
         return PAUSED;
     }
 
-    // Getter for playerScore.
-    // @return playerScore: int.
+    /// <summary>
+    /// Getter for the player's score.
+    /// </summary>
+    /// <returns>Value representing the player's score.</returns>
     public int GetPlayerScore()
     {
         return playerScore;
     }
 
-    // Plays the button click sound. Currently there is no sound.
+    /// <summary>
+    /// Plays the audio clip for the menu button click.
+    /// </summary>
     public void Click()
     {
         //GetComponent<AudioSource>().Play();
     }
 
-    // These next methods are not applicable yet, but can eventually be implemented. They simply display the
-    // screens that let the player know if they won or lost. These screens can have the player's final score, maybe
-    // a leaderboard, whatever. Right now, they are not being used.
-
-    /*
+    /// <summary>
+    /// Starts the process for displaying the game over screen.
+    /// </summary>
     public void GameLost()
     {
         if (!routineRunning)
             StartCoroutine(DisplayGameOver());
     }
 
-    public void GameWon()
-    {
-        if (!routineRunning)
-            StartCoroutine(DisplayWon());
-    }
-
+    /// <summary>
+    /// Fades in the game over screen. After displaying the screen for 5 seconds, automatically navigates 
+    /// back to the main menu.
+    /// </summary>
+    /// <returns>Yield return null when fading in and waiting for the timer, so as to come back to this
+    /// function next frame.</returns>
     IEnumerator DisplayGameOver()
     {
         routineRunning = true;
@@ -336,39 +383,5 @@ public class PersistentControl : MonoBehaviour
         }
         routineRunning = false;
         ToMainMenu();
-    }
-
-    IEnumerator DisplayWon()
-    {
-        routineRunning = true;
-        PAUSED = false;
-        Time.timeScale = 1f;
-        float timeElapsed = 0.0f;
-        GameObject screen = GameObject.Instantiate(GameWonScreenPrefab);
-        Color temp = screen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color;
-        temp.a = 0F;
-        screen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color = temp;
-        screen.transform.GetChild(0).GetChild(1).gameObject.SetActive(false);
-
-        while (screen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color.a < 1.0F)
-        {
-            Color curTransparency = screen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color;
-            curTransparency.a += (Time.deltaTime / 1F) / 3.0F;
-            if (curTransparency.a > 1.0F)
-                curTransparency.a = 1.0F;
-            screen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color = curTransparency;
-            yield return null;
-        }
-
-        screen.transform.GetChild(0).GetChild(1).gameObject.SetActive(true);
-
-        while (timeElapsed < 3f)
-        {
-            timeElapsed += Time.deltaTime;
-            yield return null;
-        }
-        routineRunning = false;
-        ToMainMenu();
-    }
-    */
+    }    
 }

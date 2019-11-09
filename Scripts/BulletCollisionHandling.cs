@@ -1,5 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿/// File Name: BulletCollisionHandling.cs
+/// File Author(s): Lincoln Schroeder
+/// File Purpose: This script is attached to every bullet. Decides what to do when the 
+/// bullet collides with something.
+/// 
+/// Date Last Updated: November 8, 2019
+
 using UnityEngine;
 
 public class BulletCollisionHandling : MonoBehaviour

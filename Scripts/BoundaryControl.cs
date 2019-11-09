@@ -1,5 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿/// File Name: BoundaryControl.cs
+/// File Author(s): Lincoln Schroeder
+/// File Purpose: Simple script that is attached to all boundaries. If the player collides with
+/// this object, the player is instantly killed.
+/// 
+/// Date Last Updated: November 8, 2019
+
 using UnityEngine;
 
 public class BoundaryControl : MonoBehaviour
