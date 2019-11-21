@@ -8,10 +8,6 @@ using UnityEngine;
 
 public class PlayerHealth : MonoBehaviour
 {
-    [SerializeField]
-    private int startingLives;
-
-    private int curLives;
     private GameObject player;
     
     /// <summary>
@@ -19,45 +15,7 @@ public class PlayerHealth : MonoBehaviour
     /// </summary>
     private void Start()
     {
-        curLives = startingLives;
         player = GameObject.FindWithTag("Player");
-    }
-
-    /// <summary>
-    /// Update is called once per frame.
-    /// </summary>
-    private void Update()
-    {
-        if(Input.GetKeyDown(KeyCode.R))
-        {
-            Revive();
-        }
-    }
-
-    /// <summary>
-    /// Subtracts one life from the player's current life pool.
-    /// </summary>
-    public void TakeDamage()
-    {
-        curLives--;
-    }
-
-    /// <summary>
-    /// Removes all life from the player and disables the player GameObject.
-    /// </summary>
-    public void InstantKill()
-    {
-        curLives = 0;
-        Kill();
-    }
-
-    /// <summary>
-    /// Adds the specified amount of lives to the player's life pool.
-    /// </summary>
-    /// <param name="lives">The number of lives being added.</param>
-    public void AddLives(int lives)
-    {
-        curLives += lives;
     }
 
     /// <summary>
@@ -65,6 +23,7 @@ public class PlayerHealth : MonoBehaviour
     /// </summary>
     private void Kill()
     {
+        GameObject.FindWithTag("Persistent").GetComponent<PersistentControl>().GameLost();
         player.SetActive(false);
     }
 
@@ -75,6 +34,5 @@ public class PlayerHealth : MonoBehaviour
     {
         player.transform.position = new Vector2(0, 0);
         player.SetActive(true);
-        curLives = startingLives;
     }
 }

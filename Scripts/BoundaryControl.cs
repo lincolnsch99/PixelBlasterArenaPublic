@@ -29,7 +29,7 @@ public class BoundaryControl : MonoBehaviour
         GameObject collidedObject = collision.gameObject;
         if(collidedObject.tag == "Player")
         {
-            playerController.BroadcastMessage("InstantKill", SendMessageOptions.DontRequireReceiver);
+            playerController.BroadcastMessage("Kill", SendMessageOptions.DontRequireReceiver);
         }
     }
 }

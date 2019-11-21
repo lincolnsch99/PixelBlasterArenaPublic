@@ -3,28 +3,27 @@
 /// File Purpose: This script handles the player movement, along with any interactions that
 /// happen from taking damage or firing the weapon.
 /// 
-/// Date Last Updated: November 8, 2019
+/// Date Last Updated: November 12, 2019
 
 using UnityEngine;
 
 public class PlayerControl : MonoBehaviour
 {
+
     [SerializeField]
     private Camera playerCam;
     [SerializeField]
-    private float movementForce;
-    [SerializeField]
     private GameObject bulletPrefab;
-    [SerializeField]
-    private float bulletSpeed;
-    [SerializeField]
-    private float bulletKickbackForce;
-    [SerializeField]
-    private float maxFireRate;
 
+    private PlayerType playerType;
+    private float movementForce;
+    private float bulletSpeed;
+    private float bulletRecoilForce;
+    private float maxFireRate;
     private Vector2 velocityVector;
     private static GameObject player;
     private float fireTimer;
+    private PersistentControl persistentController;
 
     /// <summary>
     /// Start is called before the first frame update.
@@ -32,7 +31,33 @@ public class PlayerControl : MonoBehaviour
     private void Start()
     {
         player = GameObject.FindWithTag("Player");
+        persistentController = GameObject.FindWithTag("Persistent").GetComponent<PersistentControl>();
         velocityVector = new Vector2();
+        playerType = persistentController.GetPlayerType();
+        switch(playerType)
+        {
+            case PlayerType.NORMAL:
+                player.transform.GetChild(0).gameObject.SetActive(true);
+                player.transform.GetChild(1).gameObject.SetActive(false);
+                movementForce = 15;
+                bulletSpeed = 30;
+                bulletRecoilForce = 1000;
+                maxFireRate = 0.2f;
+                break;
+            case PlayerType.BLASTER:
+                player.transform.GetChild(0).gameObject.SetActive(false);
+                player.transform.GetChild(1).gameObject.SetActive(true);
+                movementForce = 0;
+                bulletSpeed = 15;
+                bulletRecoilForce = 2000;
+                maxFireRate = 0.1f;
+                break;
+        }
+    }
+
+    private void Awake()
+    {
+        Cursor.visible = false;
     }
 
     /// <summary>
@@ -48,16 +73,19 @@ public class PlayerControl : MonoBehaviour
         {
             fireTimer = 0;
             FireProjectile(mousePos);
+            persistentController.GetComponent<AudioSource>().PlayOneShot(GetComponent<AudioSource>().clip);
         }
-
-        if (Input.GetKey(KeyCode.W))
-            movementVec.y = movementForce;
-        else if (Input.GetKey(KeyCode.S))
-            movementVec.y = -movementForce;
-        if (Input.GetKey(KeyCode.D))
-            movementVec.x = movementForce;
-        else if (Input.GetKey(KeyCode.A))
-            movementVec.x = -movementForce;
+        if (playerType == PlayerType.NORMAL)
+        {
+            if (Input.GetKey(KeyCode.W))
+                movementVec.y = movementForce;
+            else if (Input.GetKey(KeyCode.S))
+                movementVec.y = -movementForce;
+            if (Input.GetKey(KeyCode.D))
+                movementVec.x = movementForce;
+            else if (Input.GetKey(KeyCode.A))
+                movementVec.x = -movementForce;
+        }
 
         player.GetComponent<Rigidbody2D>().AddForce(movementVec);
     }
@@ -97,8 +125,40 @@ public class PlayerControl : MonoBehaviour
         velocityVector = new Vector2(xVelocity, yVelocity);
         GameObject bullet = GameObject.Instantiate(bulletPrefab, player.transform.position, player.transform.rotation);
         bullet.GetComponent<Rigidbody2D>().velocity = velocityVector;
-        bullet.transform.localEulerAngles = new Vector3(0, 0, rotateAngle);
         ApplyKickbackForce(Mathf.Deg2Rad * rotateAngle);
+
+        if (playerType == PlayerType.BLASTER)
+        {
+            angle = Mathf.Atan((mousePos.y - player.transform.position.y) / (mousePos.x - player.transform.position.x));
+            angle += Mathf.Deg2Rad * 55f;
+            xVelocity = bulletSpeed * Mathf.Cos(angle);
+            yVelocity = bulletSpeed * Mathf.Sin(angle);
+            rotateAngle = Mathf.Rad2Deg * angle;
+            if (mousePos.x < player.transform.position.x)
+            {
+                xVelocity *= -1;
+                yVelocity *= -1;
+                rotateAngle += 180;
+            }
+            velocityVector = new Vector2(xVelocity, yVelocity);
+            bullet = GameObject.Instantiate(bulletPrefab, player.transform.position, player.transform.rotation);
+            bullet.GetComponent<Rigidbody2D>().velocity = velocityVector;
+
+            angle = Mathf.Atan((mousePos.y - player.transform.position.y) / (mousePos.x - player.transform.position.x));
+            angle -= Mathf.Deg2Rad * 55f;
+            xVelocity = bulletSpeed * Mathf.Cos(angle);
+            yVelocity = bulletSpeed * Mathf.Sin(angle);
+            rotateAngle = Mathf.Rad2Deg * angle;
+            if (mousePos.x < player.transform.position.x)
+            {
+                xVelocity *= -1;
+                yVelocity *= -1;
+                rotateAngle += 180;
+            }
+            velocityVector = new Vector2(xVelocity, yVelocity);
+            bullet = GameObject.Instantiate(bulletPrefab, player.transform.position, player.transform.rotation);
+            bullet.GetComponent<Rigidbody2D>().velocity = velocityVector;
+        }
     }
 
     /// <summary>
@@ -108,8 +168,8 @@ public class PlayerControl : MonoBehaviour
     public void ApplyKickbackForce(float fireAngle)
     {
         fireAngle = Mathf.Deg2Rad * ((Mathf.Rad2Deg * fireAngle) + 180f);
-        Vector2 force = new Vector2(bulletKickbackForce * Mathf.Cos(fireAngle),
-            bulletKickbackForce * Mathf.Sin(fireAngle));
+        Vector2 force = new Vector2(bulletRecoilForce * Mathf.Cos(fireAngle),
+            bulletRecoilForce * Mathf.Sin(fireAngle));
         player.GetComponent<Rigidbody2D>().AddForce(force);
     }
 
@@ -118,7 +178,7 @@ public class PlayerControl : MonoBehaviour
     /// specific force magnitude.
     /// </summary>
     /// <param name="damageFrom">The enemy that is damaging the player.</param>
-    public static void ApplyDamageForce(GameObject damageFrom)
+    public void ApplyEnemyForce(GameObject damageFrom)
     {
         float angleInRad = Mathf.Atan((damageFrom.transform.position.y - player.transform.position.y) / (damageFrom.transform.position.x - player.transform.position.x));
         int collisionForce = damageFrom.GetComponent<EnemyControl>().GetCollisionForce();

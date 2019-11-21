@@ -12,6 +12,7 @@ public class CameraFollow : MonoBehaviour
     private float lerpAmount;
 
     private GameObject player;
+    private PersistentControl persistentController;
 
     /// <summary>
     /// Start is called before the first frame update.
@@ -19,6 +20,8 @@ public class CameraFollow : MonoBehaviour
     void Start()
     {
         player = GameObject.FindWithTag("Player");
+        persistentController = GameObject.FindWithTag("Persistent").GetComponent<PersistentControl>();
+        GetComponent<Camera>().orthographicSize = 60;
     }
 
     /// <summary>
@@ -26,6 +29,17 @@ public class CameraFollow : MonoBehaviour
     /// </summary>
     void FixedUpdate()
     {
-        GetComponent<Rigidbody2D>().position = Vector3.Lerp(GetComponent<Rigidbody2D>().position, player.GetComponent<Rigidbody2D>().position, lerpAmount);
+        if(!persistentController.IsPaused())
+        {
+            if (Input.mouseScrollDelta.y > 0)
+                GetComponent<Camera>().orthographicSize = GetComponent<Camera>().orthographicSize - 2.5f;
+            if (Input.mouseScrollDelta.y < 0)
+                GetComponent<Camera>().orthographicSize = GetComponent<Camera>().orthographicSize + 2.5f;
+        }
+
+        if (GetComponent<Camera>().orthographicSize > 75)
+            GetComponent<Camera>().orthographicSize = 75;
+        else if (GetComponent<Camera>().orthographicSize < 25)
+            GetComponent<Camera>().orthographicSize = 25;
     }
 }

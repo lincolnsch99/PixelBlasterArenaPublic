@@ -3,23 +3,47 @@
 /// File Purpose: The PersistentControl class is used to store data and do operations that require 
 /// continuity throughout all scenes of the game. This script should only be attached to one GameObject.
 /// 
-/// Date Last Updated: November 8, 2019
+/// Date Last Updated: November 12, 2019
 
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 public class PersistentControl : MonoBehaviour
 {
-    private bool PAUSED;
-    private int playerScore;
+    private int allTimeHighScore;
+    public int AllTimeHighScore { get { return allTimeHighScore; } set { allTimeHighScore = value; } }
 
+    private int allTimeHighRound;
+    public int AllTimeHighRound { get { return allTimeHighRound; } set { allTimeHighRound = value; } }
+
+    private List<Stage> defaultStages;
+    public List<Stage> DefaultStages { get { return defaultStages; } set { defaultStages = value; } }
+
+    private List<Stage> customStages;
+    public List<Stage> CustomStages { get { return customStages; } set { customStages = value; } }
+
+    private int mouseSens;
+    public int MouseSens { get { return mouseSens; } set { mouseSens = value; } }
+
+    private int sfxVolume;
+    public int SfxVolume { get { return sfxVolume; } set { sfxVolume = value; } }
+
+    private int musicVolume;
+    public int MusicVolume { get { return musicVolume; } set { musicVolume = value; } }
+
+    private Stage selectedStage;
+    public Stage SelectedStage { get { return selectedStage; } set { selectedStage = value; } }
 
     [SerializeField]
     private GameObject GameOverScreenPrefab;
-    
 
+    private bool PAUSED;
+    private int playerScore;
+    private int round;
+    private PlayerType playerType;
     private GameObject loadScreen;
     private Slider loadScreenProgress;
     private bool routineRunning;
@@ -30,6 +54,10 @@ public class PersistentControl : MonoBehaviour
     private void Start()
     {
         routineRunning = false;
+        playerType = PlayerType.NONE;
+        defaultStages = new List<Stage>();
+        customStages = new List<Stage>();
+        LoadGame();
     }
 
     /// <summary>
@@ -39,13 +67,13 @@ public class PersistentControl : MonoBehaviour
     private void Awake()
     {
         DontDestroyOnLoad(this.gameObject);
-        // At the very beginning, the initial scene only contains the PersistentController Object, so we need to load
-        // the main menu.
+        /// At the very beginning, the initial scene only contains the PersistentController Object, so we need to load
+        /// the main menu.
         if (SceneManager.GetActiveScene().buildIndex == 0)
             SceneManager.LoadScene("MainMenu");
 
-        // Every scene needs a gameobject containing the loadscreen. It will be used by this persistent script in order to 
-        // appear and show progress whenever a scene is being loaded. This is because this does not work with prefabs.
+        /// Every scene needs a gameobject containing the loadscreen. It will be used by this persistent script in order to 
+        /// appear and show progress whenever a scene is being loaded. This is because this does not work with prefabs.
         GameObject[] objects = Resources.FindObjectsOfTypeAll<GameObject>();
         for (int i = 0; i < objects.Length; i++)
         {
@@ -72,24 +100,26 @@ public class PersistentControl : MonoBehaviour
     /// </summary>
     private void Update()
     {
-        if (SceneManager.GetActiveScene().name == "Game")
+        if (SceneManager.GetActiveScene().name == "GameScene")
         {
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 if (PAUSED)
                 {
+                    Cursor.visible = false;
                     UnPauseGame();
                 }
                 else
                 {
+                    Cursor.visible = true;
                     PauseGame();
                 }
             }
         }
     }
 
-    // The next 3 functions are specific to Persistent objects, to help the object know when they are
-    // transitioning to new scenes, and reset some of the variables each time.
+    /// The next 3 functions are specific to Persistent objects, to help the object know when they are
+    /// transitioning to new scenes, and reset some of the variables each time.
 
     /// <summary>
     /// Called when a scene is being loaded.
@@ -110,8 +140,8 @@ public class PersistentControl : MonoBehaviour
 
         if (SceneManager.GetActiveScene().name != "InitScene")
         {
-            // Every scene needs a gameobject containing the loadscreen. It will be used by this persistent script in order to 
-            // appear and show progress whenever a scene is being loaded. This is because this does not work with prefabs.
+            /// Every scene needs a gameobject containing the loadscreen. It will be used by this persistent script in order to 
+            /// appear and show progress whenever a scene is being loaded. This is because this does not work with prefabs.
             GameObject[] objects = Resources.FindObjectsOfTypeAll<GameObject>();
             for (int i = 0; i < objects.Length; i++)
             {
@@ -146,20 +176,11 @@ public class PersistentControl : MonoBehaviour
     /// <param name="sceneName">The name of the scene to be loaded.</param>
     public void LoadScene(string sceneName)
     {
-        bool validSceneName = false;
-        for(int i =0; i < SceneManager.sceneCount; i++)
-        {
-            if (SceneManager.GetSceneAt(i).name == sceneName)
-                validSceneName = true;
-        }
-        if (validSceneName)
-        {
-            PAUSED = false;
-            Time.timeScale = 1f;
-            StartCoroutine(LoadSceneAsync(sceneName));
-        }
-        else
-            Debug.LogError("Invalid scene request. '" + sceneName + "' is not an existing scene.");
+
+        PAUSED = false;
+        Time.timeScale = 1f;
+        StartCoroutine(LoadSceneAsync(sceneName));
+
     }
 
     /// <summary>
@@ -174,18 +195,18 @@ public class PersistentControl : MonoBehaviour
         routineRunning = true;
         if (loadScreen != null)
             loadScreen.SetActive(true);
-        Color temp = loadScreen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color;
+        Color temp = loadScreen.transform.GetChild(0).GetComponent<Image>().color;
         temp.a = 0F;
-        loadScreen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color = temp;
+        loadScreen.transform.GetChild(0).GetComponent<Image>().color = temp;
         loadScreenProgress.gameObject.SetActive(false);
 
-        while (loadScreen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color.a < 1.0F)
+        while (loadScreen.transform.GetChild(0).GetComponent<Image>().color.a < 1.0F)
         {
-            Color curTransparency = loadScreen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color;
+            Color curTransparency = loadScreen.transform.GetChild(0).GetComponent<Image>().color;
             curTransparency.a += (Time.deltaTime / 1F) / 1.0F;
             if (curTransparency.a > 1.0F)
                 curTransparency.a = 1.0F;
-            loadScreen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color = curTransparency;
+            loadScreen.transform.GetChild(0).GetComponent<Image>().color = curTransparency;
             yield return null;
         }
 
@@ -211,6 +232,7 @@ public class PersistentControl : MonoBehaviour
     /// </summary>
     public void QuitGame()
     {
+        SaveAll();
         Application.Quit();
     }
 
@@ -219,8 +241,10 @@ public class PersistentControl : MonoBehaviour
     /// </summary>
     public void PlayGame()
     {
+        playerScore = 0;
+        round = 0;
         UnPauseGame();
-        LoadScene("Game");
+        LoadScene("GameScene");
     }
 
     /// <summary>
@@ -228,7 +252,7 @@ public class PersistentControl : MonoBehaviour
     /// </summary>
     public void SelectOptions()
     {
-        DisplayMenuElement(2);
+        DisplayMenuElement(1);
     }
 
     /// <summary>
@@ -236,7 +260,23 @@ public class PersistentControl : MonoBehaviour
     /// </summary>
     public void SelectTutorial()
     {
+        DisplayMenuElement(2);
+    }
+
+    /// <summary>
+    /// Used by buttons. Navigates to the screen for selecting the stage to play on.
+    /// </summary>
+    public void ToStageSelect()
+    {
         DisplayMenuElement(3);
+    }
+
+    /// <summary>
+    /// Used by buttons. Navigates to the screen for selecting the player type.
+    /// </summary>
+    public void ToPlayerSelect()
+    {
+        DisplayMenuElement(4);
     }
 
     /// <summary>
@@ -245,6 +285,9 @@ public class PersistentControl : MonoBehaviour
     /// </summary>
     public void ToMainMenu()
     {
+        playerType = PlayerType.NONE;
+        playerScore = 0;
+        round = 0;
         if (SceneManager.GetActiveScene().name != "MainMenu")
         {
             UnPauseGame();
@@ -252,7 +295,7 @@ public class PersistentControl : MonoBehaviour
             LoadScene("MainMenu");
         }
         else
-            DisplayMenuElement(1);
+            DisplayMenuElement(0);
     }
 
     /// <summary>
@@ -269,7 +312,7 @@ public class PersistentControl : MonoBehaviour
             {
                 if (i == index)
                     menuObject.transform.GetChild(i).gameObject.SetActive(true);
-                else if (i != 0) // The background shouldn't be deleted when going through the menu.
+                else if (i != 0) /// The background shouldn't be deleted when going through the menu.
                     menuObject.transform.GetChild(i).gameObject.SetActive(false);
             }
         }
@@ -284,6 +327,24 @@ public class PersistentControl : MonoBehaviour
     public void IncrementPlayerScore(int amount)
     {
         playerScore += amount;
+    }
+
+    /// <summary>
+    /// Setter for the current round.
+    /// </summary>
+    /// <param name="round">New round number.</param>
+    public void SetRound(int round)
+    {
+        this.round = round;
+    }
+
+    /// <summary>
+    /// Getter for the current round.
+    /// </summary>
+    /// <returns>The current round.</returns>
+    public int GetRound()
+    {
+        return round;
     }
 
     /// <summary>
@@ -306,7 +367,6 @@ public class PersistentControl : MonoBehaviour
     public void UnPauseGame()
     {
         PAUSED = false;
-        Cursor.visible = false;
         Time.timeScale = 1f;
     }
 
@@ -329,20 +389,11 @@ public class PersistentControl : MonoBehaviour
     }
 
     /// <summary>
-    /// Plays the audio clip for the menu button click.
-    /// </summary>
-    public void Click()
-    {
-        //GetComponent<AudioSource>().Play();
-    }
-
-    /// <summary>
     /// Starts the process for displaying the game over screen.
     /// </summary>
     public void GameLost()
     {
-        if (!routineRunning)
-            StartCoroutine(DisplayGameOver());
+        StartCoroutine(DisplayGameOver());
     }
 
     /// <summary>
@@ -353,20 +404,23 @@ public class PersistentControl : MonoBehaviour
     /// function next frame.</returns>
     IEnumerator DisplayGameOver()
     {
+        Cursor.visible = true;
         routineRunning = true;
         PAUSED = false;
         Time.timeScale = 1f;
         float timeElapsed = 0.0f;
         GameObject screen = GameObject.Instantiate(GameOverScreenPrefab);
         Color temp = screen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color;
-        temp.a = 0F;
+        temp.a = 0.0f;
         screen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color = temp;
         screen.transform.GetChild(0).GetChild(1).gameObject.SetActive(false);
+        screen.transform.GetChild(0).GetChild(1).GetChild(1).GetComponent<Text>().text = "Total Score: " + playerScore;
+        screen.transform.GetChild(0).GetChild(1).GetChild(2).GetComponent<Text>().text = "Rounds Survived: " + round;
 
         while (screen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color.a < 1.0F)
         {
             Color curTransparency = screen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color;
-            curTransparency.a += (Time.deltaTime / 1F) / 4.5F;
+            curTransparency.a += (Time.deltaTime / 1F) / 2F;
             if (curTransparency.a > 1.0F)
                 curTransparency.a = 1.0F;
             screen.transform.GetChild(0).GetChild(0).GetComponent<Image>().color = curTransparency;
@@ -375,13 +429,76 @@ public class PersistentControl : MonoBehaviour
         }
 
         screen.transform.GetChild(0).GetChild(1).gameObject.SetActive(true);
+    }
 
-        while (timeElapsed < 3f)
+    public void SelectPlayerType(PlayerType playerType)
+    {
+        this.playerType = playerType;
+        PlayGame();
+    }
+
+    public PlayerType GetPlayerType()
+    {
+        return playerType;
+    }
+
+    public void SelectFromDefaultStages(string stageName)
+    {
+        foreach(Stage stage in defaultStages)
         {
-            timeElapsed += Time.deltaTime;
-            yield return null;
+            if (stage.Name == stageName)
+                selectedStage = stage;
         }
-        routineRunning = false;
-        ToMainMenu();
-    }    
+        ToPlayerSelect();
+    }
+
+    //Saves the current player stats in the local save file
+    public void SaveAll()
+    {
+        SaveData.Save(this);
+    }
+
+    //Loads the stats from the save file, if found
+    public void LoadGame()
+    {
+        try
+        {
+            GameData loadedData = SaveData.Load();
+
+            allTimeHighScore = loadedData.AllTimeHighScore;
+            allTimeHighRound = loadedData.AllTimeHighRound;
+            defaultStages = loadedData.DefaultStages;
+            customStages = loadedData.CustomStages;
+            mouseSens = loadedData.MouseSens;
+            sfxVolume = loadedData.SfxVolume;
+            musicVolume = loadedData.MusicVolume;
+        }
+        catch
+        {
+            SaveData.CreateNewGameFile();
+            GameData newGameData = SaveData.NewGame();
+            allTimeHighScore = newGameData.AllTimeHighScore;
+            allTimeHighRound = newGameData.AllTimeHighRound;
+            defaultStages = newGameData.DefaultStages;
+            customStages = newGameData.CustomStages;
+            mouseSens = newGameData.MouseSens;
+            sfxVolume = newGameData.SfxVolume;
+            musicVolume = newGameData.MusicVolume;
+        }
+    }
+
+    public void SaveCustomStage(Stage stageToSave)
+    {
+        for(int i= 0; i < customStages.Count; i++)
+        {
+            if(stageToSave.Name == customStages[i].Name)
+            {
+                customStages.Remove(customStages[i]);
+                i = customStages.Count;
+            }
+        }
+        customStages.Add(stageToSave);   
+    }
+
+    
 }

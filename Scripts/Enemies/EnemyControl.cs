@@ -4,8 +4,9 @@
 /// for monitoring and changing enemy behavior. It also stores necessary data for the enemy, such as health and
 /// damage.
 /// 
-/// Date Last Updated: November 8, 2019
+/// Date Last Updated: November 10, 2019
 
+using System.Collections;
 using UnityEngine;
 
 public class EnemyControl : MonoBehaviour
@@ -15,14 +16,19 @@ public class EnemyControl : MonoBehaviour
     [SerializeField]
     private float moveSpeed;
     [SerializeField]
-    private int damage;
-    [SerializeField]
     private int maxLives;
     [SerializeField]
     private int collisionForce;
+    [SerializeField]
+    private int scoreValue;
+    [SerializeField]
+    private GameObject explosionPrefab;
 
     private int curLives;
-    private GameObject player, playerController;
+    private GameObject player, playerController, persistentController;
+    private bool hasPath;
+    private float timeToExplode;
+    private EnemySpawner spawner;
     
     /// <summary>
     /// Awake is called on the first frame of instantiation.
@@ -32,7 +38,12 @@ public class EnemyControl : MonoBehaviour
         curLives = maxLives;
         player = GameObject.FindWithTag("Player");
         playerController = GameObject.Find("PlayerController");
+        persistentController = GameObject.FindWithTag("Persistent");
+        spawner = GameObject.FindWithTag("SpawnHolder").GetComponent<EnemySpawner>();
+        hasPath = false;
         GetPath();
+        if (enemyType == EnemyType.BUSTER)
+            timeToExplode = 7f;
     }
 
     /// <summary>
@@ -48,6 +59,37 @@ public class EnemyControl : MonoBehaviour
         {
             GetPath();
         }
+        else if(enemyType == EnemyType.BUSTER)
+        {
+            timeToExplode -= Time.deltaTime;
+            if(timeToExplode <= 0)
+            {
+                Kill();
+            }
+            transform.GetChild(transform.childCount - 1).Rotate(0, 0, 40f / timeToExplode);
+            transform.GetChild(0).Rotate(0, 0, -40f / timeToExplode);
+        }
+
+        if (player == null && !hasPath)
+        {
+            player = GameObject.FindWithTag("Player");
+            GetPath();
+        }
+
+        if (CheckIfOffScreen())
+        {
+            Destroy(this.gameObject);
+        }
+    }
+
+    private bool CheckIfOffScreen()
+    {
+        if (transform.position.x < -10 || transform.position.x > 110
+            || transform.position.y > 110 || transform.position.y < -10)
+        {
+            return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -56,6 +98,8 @@ public class EnemyControl : MonoBehaviour
     /// </summary>
     private void GetPath()
     {
+        if (player == null)
+            return;
         float xHeight = transform.position.x - player.transform.position.x;
         float yHeight = transform.position.y - player.transform.position.y;
 
@@ -72,6 +116,7 @@ public class EnemyControl : MonoBehaviour
         Vector2 movePath = new Vector2(xSpeed, ySpeed);
         GetComponent<Rigidbody2D>().velocity = movePath;
         transform.localEulerAngles = new Vector3(0, 0, angleInDeg);
+        hasPath = true;
     }
 
     /// <summary>
@@ -84,10 +129,16 @@ public class EnemyControl : MonoBehaviour
         GameObject collidedObject = collision.gameObject;
         if(collidedObject.tag == "Player")
         {
-            for(int i = 0; i < damage; i++)
-                playerController.BroadcastMessage("TakeDamage", SendMessageOptions.DontRequireReceiver);
-            PlayerControl.ApplyDamageForce(this.gameObject);
-        }
+            playerController.BroadcastMessage("ApplyEnemyForce", this.gameObject, SendMessageOptions.DontRequireReceiver);
+            if (enemyType == EnemyType.PURSUER)
+            {
+                TakeDamage();
+            }
+            else if(enemyType == EnemyType.BUSTER)
+            {
+                timeToExplode = 0;
+            }
+        }  
     }
 
     /// <summary>
@@ -95,16 +146,47 @@ public class EnemyControl : MonoBehaviour
     /// </summary>
     public void TakeDamage()
     {
-        curLives--;
-        if (curLives <= 0)
-            Kill();
+        if (enemyType == EnemyType.BUSTER)
+        {
+            persistentController.GetComponent<PersistentControl>().IncrementPlayerScore(scoreValue);
+        }
+        else
+        {
+            curLives--;
+            if (curLives < 1)
+            {
+                curLives = 0;
+                persistentController.GetComponent<AudioSource>().PlayOneShot(GetComponent<AudioSource>().clip);
+                GetComponent<Animator>().SetInteger("curLives", curLives);
+            }
+        }
     }
 
     /// <summary>
-    /// "Kills" the enemy. Destroys the enemy gameObject.
+    /// "Kills" the enemy. Adds to player score and destroys the enemy gameObject.
     /// </summary>
     private void Kill()
     {
+        if(enemyType == EnemyType.BUSTER)
+        {
+            persistentController.GetComponent<AudioSource>().PlayOneShot(GetComponent<AudioSource>().clip);
+            float radius = 10f;
+            Collider2D[] collidersInRadius = Physics2D.OverlapCircleAll(transform.position, radius);
+            foreach(Collider2D collider in collidersInRadius)
+            {
+                if(collider.gameObject.tag == "Player")
+                {
+                    playerController.BroadcastMessage("ApplyEnemyForce", this.gameObject, SendMessageOptions.DontRequireReceiver);
+                }
+                else if(collider.gameObject.tag == "Enemy" && !collider.gameObject.Equals(this.gameObject))
+                {
+                    collider.gameObject.BroadcastMessage("ApplyEnemyForce", this.gameObject, SendMessageOptions.DontRequireReceiver);
+                }
+            }
+            GameObject.Instantiate(explosionPrefab, transform.position, new Quaternion());
+        }
+
+        persistentController.GetComponent<PersistentControl>().IncrementPlayerScore(scoreValue);
         Destroy(this.gameObject);
     }
 
@@ -124,5 +206,36 @@ public class EnemyControl : MonoBehaviour
     public void SetEnemyType(EnemyType enemyType)
     {
         this.enemyType = enemyType;
+    }
+
+    /// <summary>
+    /// Applies a force to the enemy.
+    /// </summary>
+    /// <param name="damageFrom">The enemy that is applying force.</param>
+    public void ApplyEnemyForce(GameObject damageFrom)
+    {
+        float angleInRad = Mathf.Atan((damageFrom.transform.position.y - transform.position.y) / (damageFrom.transform.position.x - transform.position.x));
+        float angleInDeg = Mathf.Rad2Deg * angleInRad;
+        float collisionForce;
+        try
+        {
+            collisionForce = (float)damageFrom.GetComponent<EnemyControl>().GetCollisionForce() / 2f;
+        }
+        catch(System.NullReferenceException e)
+        {
+            collisionForce = (float)damageFrom.GetComponent<ShieldControl>().CollisionForce;
+        }
+        float xForce = collisionForce * Mathf.Cos(angleInRad);
+        float yForce = collisionForce * Mathf.Sin(angleInRad);
+        if (transform.position.x < damageFrom.transform.position.x)
+        {
+            xForce *= -1;
+            yForce *= -1;
+            angleInDeg += 180f;
+        }
+
+        Vector2 force = new Vector2(xForce, yForce);
+        GetComponent<Rigidbody2D>().AddForce(force);
+        transform.localEulerAngles = new Vector3(0, 0, angleInDeg);
     }
 }
