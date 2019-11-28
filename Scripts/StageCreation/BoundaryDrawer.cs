@@ -1,4 +1,11 @@
-﻿using UnityEngine;
+﻿/// File Name: BoundaryDrawer.cs
+/// File Author(s): Lincoln Schroeder
+/// File Purpose: Handles displaying UI to the user and taking inputs from the user
+/// when creating custom stages. 
+/// 
+/// Date Last Updated: November 27, 2019
+
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class BoundaryDrawer : MonoBehaviour
@@ -35,7 +42,9 @@ public class BoundaryDrawer : MonoBehaviour
     private SingleSpaceType currentTypeSelection;
     
 
-    // Start is called before the first frame update
+    /// <summary>
+    /// Start is called before the first frame update.
+    /// </summary>
     void Start()
     {
         mainCamera = GameObject.FindWithTag("MainCamera");
@@ -45,7 +54,9 @@ public class BoundaryDrawer : MonoBehaviour
         editable = (SceneManager.GetActiveScene().name != "GameScene");
     }
 
-    // Update is called once per frame
+    /// <summary>
+    /// Update is called every frame.
+    /// </summary>
     void Update()
     {
         if (editable)
@@ -142,17 +153,32 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Converts the world position to a coordinate representing the position in the double array used
+    /// for storing stage boundaries.
+    /// </summary>
+    /// <param name="worldPosition">Position to be converted to coordinates.</param>
+    /// <returns>A Vector2Int representing coordinates.</returns>
     private Vector2Int ConvertToGridIndex(Vector2 worldPosition)
     {
         return new Vector2Int(Mathf.RoundToInt(worldPosition.x / SPRITE_UNIT_WIDTH),
             Mathf.RoundToInt(worldPosition.y / SPRITE_UNIT_WIDTH));
     }
 
+    /// <summary>
+    /// Converts the coordinates to a position in the game world.
+    /// </summary>
+    /// <param name="gridIndex">The coordinates to be converted to world position.</param>
+    /// <returns>A Vector3 representing the converted position.</returns>
     private Vector3 ConvertToWorldPosition(Vector2Int gridIndex)
     {
         return new Vector3(gridIndex.x * SPRITE_UNIT_WIDTH, gridIndex.y * SPRITE_UNIT_WIDTH, 0);
     }
 
+    /// <summary>
+    /// Shows the currently selected sprite at the desired position (with half opacity).
+    /// </summary>
+    /// <param name="displayAt">The position the sprite will be displayed at.</param>
     private void DisplaySpriteAtPosition(Vector2 displayAt)
     {
         Vector2Int gridPos = ConvertToGridIndex(displayAt);
@@ -161,6 +187,11 @@ public class BoundaryDrawer : MonoBehaviour
             .color = new Color(1, 1, 1, 0.5f);
     }
 
+    /// <summary>
+    /// Updates the boundary map to now include the selected boundary at the given position.
+    /// Once set, the boundary map will display the boundary at full opacity.
+    /// </summary>
+    /// <param name="setAt">The position that the sprite will be displayed at.</param>
     private void SetSpriteAtPosition(Vector2 setAt)
     {
         Vector2Int gridPos = ConvertToGridIndex(setAt);
@@ -174,6 +205,10 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Updates the boundary map to remove boundaries from the given location.
+    /// </summary>
+    /// <param name="removeAt">The position that the boundaries will be cleared.</param>
     private void RemoveSpriteAtPosition(Vector2 removeAt)
     {
         Vector2Int gridPos = ConvertToGridIndex(removeAt);
@@ -187,6 +222,10 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Cycles the corner sprite to the next in line.
+    /// </summary>
+    /// <returns>A GameObject of the correct sprite that has been instantiated.</returns>
     private GameObject NextCornerTypePrefab()
     {
         switch(currentTypeSelection)
@@ -209,6 +248,10 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Cycles the corner type to the next in line.
+    /// </summary>
+    /// <returns>Type identifying what space type is next to be selected.</returns>
     private SingleSpaceType NextCornerType()
     {
         switch (currentTypeSelection)
@@ -226,6 +269,10 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Cycles the regular sprite to the next in line.
+    /// </summary>
+    /// <returns>A GameObject of the correct sprite that has been instantiated.</returns>
     private GameObject OtherRegularTypePrefab()
     {
         switch(currentTypeSelection)
@@ -242,6 +289,10 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Cycles the regular type to the next in line.
+    /// </summary>
+    /// <returns>Type identifying what space type is next to be selected.</returns>
     private SingleSpaceType OtherRegularType()
     {
         switch (currentTypeSelection)
@@ -255,6 +306,10 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Cycles the corner sprite to the previous in line.
+    /// </summary>
+    /// <returns>A GameObject of the correct sprite that has been instantiated.</returns>
     private GameObject PrevCornerTypePrefab()
     {
         switch (currentTypeSelection)
@@ -277,6 +332,10 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Cycles the corner type to the previous in line.
+    /// </summary>
+    /// <returns>Type identifying what space type is next to be selected.</returns>
     private SingleSpaceType PrevCornerType()
     {
         switch (currentTypeSelection)
@@ -294,6 +353,9 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Updates the world to represent the boundary that is being made by the player.
+    /// </summary>
     public void DisplayMap()
     {
         ClearMap();
@@ -339,6 +401,9 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Clears the world of all existing boundary objects.
+    /// </summary>
     private void ClearMap()
     {
         GameObject[] objectsInScene = FindObjectsOfType<GameObject>();
@@ -349,12 +414,20 @@ public class BoundaryDrawer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Setter for the boundary map.
+    /// </summary>
+    /// <param name="map">New BoundaryMap.</param>
     public void SetMap(BoundaryMap map)
     {
         this.map = new BoundaryMap(map);
         DisplayMap();
     }
 
+    /// <summary>
+    /// Getter for the boundary map.
+    /// </summary>
+    /// <returns>The boundary map.</returns>
     public BoundaryMap GetMap()
     {
         return map;

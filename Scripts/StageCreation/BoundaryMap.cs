@@ -1,4 +1,9 @@
-﻿using UnityEngine;
+﻿/// File Name: BoundaryMap.cs
+/// File Author(s): Lincoln Schroeder
+/// File Purpose: This Serializable script is used for holding information regarding the boundaries in
+/// a stage. Stored in files as part of a Stage.
+/// 
+/// Date Last Updated: November 27, 2019
 
 [System.Serializable]
 public class BoundaryMap
@@ -23,6 +28,10 @@ public class BoundaryMap
         playerSpawnPos_y = (int)(5 * ((float)height / 2f));
     }
 
+    /// <summary>
+    /// Copy constructor.
+    /// </summary>
+    /// <param name="copy">The BoundaryMap to be copied from.</param>
     public BoundaryMap(BoundaryMap copy)
     {
         width = copy.GetWidth();
@@ -119,11 +128,19 @@ public class BoundaryMap
         return gridRepresentation[x, y];
     }
     
+    /// <summary>
+    /// Getter for the player spawn x position.
+    /// </summary>
+    /// <returns>Player spawn x position.</returns>
     public int GetPlayerSpawnX()
     {
         return playerSpawnPos_x;
     }
 
+    /// <summary>
+    /// Getter for the player spawn y position.
+    /// </summary>
+    /// <returns>Player spawn y position.</returns>
     public int GetPlayerSpawnY()
     {
         return playerSpawnPos_y;

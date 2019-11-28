@@ -4,9 +4,8 @@
 /// for monitoring and changing enemy behavior. It also stores necessary data for the enemy, such as health and
 /// damage.
 /// 
-/// Date Last Updated: November 10, 2019
+/// Date Last Updated: November 26, 2019
 
-using System.Collections;
 using UnityEngine;
 
 public class EnemyControl : MonoBehaviour
@@ -24,10 +23,10 @@ public class EnemyControl : MonoBehaviour
     [SerializeField]
     private GameObject explosionPrefab;
 
-    private int curLives;
+    private int curLives, forceAppliedTime;
     private GameObject player, playerController, persistentController;
     private bool hasPath;
-    private float timeToExplode;
+    private float timeToExplode, timeFromForce;
     private EnemySpawner spawner;
     
     /// <summary>
@@ -44,6 +43,7 @@ public class EnemyControl : MonoBehaviour
         GetPath();
         if (enemyType == EnemyType.BUSTER)
             timeToExplode = 7f;
+        timeFromForce = forceAppliedTime = 2;
     }
 
     /// <summary>
@@ -51,37 +51,50 @@ public class EnemyControl : MonoBehaviour
     /// </summary>
     private void FixedUpdate()
     {
-        if(enemyType == EnemyType.SHREDDER)
+        if (!persistentController.GetComponent<PersistentControl>().IsPaused())
         {
-            transform.GetChild(transform.childCount - 1).Rotate(0, 0, 5);
-        }
-        else if(enemyType == EnemyType.PURSUER)
-        {
-            GetPath();
-        }
-        else if(enemyType == EnemyType.BUSTER)
-        {
-            timeToExplode -= Time.deltaTime;
-            if(timeToExplode <= 0)
+            timeFromForce += Time.deltaTime;
+
+            if (enemyType == EnemyType.SHREDDER)
             {
-                Kill();
+                transform.GetChild(transform.childCount - 1).Rotate(0, 0, 5);
             }
-            transform.GetChild(transform.childCount - 1).Rotate(0, 0, 40f / timeToExplode);
-            transform.GetChild(0).Rotate(0, 0, -40f / timeToExplode);
-        }
+            else if (enemyType == EnemyType.PURSUER && timeFromForce > forceAppliedTime)
+            {
+                GetPath();
+            }
+            else if (enemyType == EnemyType.BUSTER)
+            {
+                timeToExplode -= Time.deltaTime;
+                if (timeToExplode <= 0)
+                {
+                    Kill();
+                }
+                transform.GetChild(transform.childCount - 1).Rotate(0, 0, 40f / timeToExplode);
+                transform.GetChild(0).Rotate(0, 0, -40f / timeToExplode);
+            }
 
-        if (player == null && !hasPath)
-        {
-            player = GameObject.FindWithTag("Player");
-            GetPath();
-        }
+            if (CheckIfOffScreen())
+            {
+                Destroy(this.gameObject);
+            }
 
-        if (CheckIfOffScreen())
-        {
-            Destroy(this.gameObject);
+            if(timeFromForce > forceAppliedTime && !hasPath)
+            {
+                GetPath();
+            }
+            else if(timeFromForce < forceAppliedTime)
+            {
+                GetComponent<Rigidbody2D>().drag = 0.5f;
+            }
+
         }
     }
 
+    /// <summary>
+    /// Checks if the enemy has travelled outside of the playable area.
+    /// </summary>
+    /// <returns>True if the enemy is outside of bounds, false otherwise.</returns>
     private bool CheckIfOffScreen()
     {
         if (transform.position.x < -10 || transform.position.x > 110
@@ -117,6 +130,7 @@ public class EnemyControl : MonoBehaviour
         GetComponent<Rigidbody2D>().velocity = movePath;
         transform.localEulerAngles = new Vector3(0, 0, angleInDeg);
         hasPath = true;
+        GetComponent<Rigidbody2D>().drag = 0;
     }
 
     /// <summary>
@@ -153,9 +167,8 @@ public class EnemyControl : MonoBehaviour
         else
         {
             curLives--;
-            if (curLives < 1)
+            if (curLives < 1 && curLives + 1 > 0)
             {
-                curLives = 0;
                 persistentController.GetComponent<AudioSource>().PlayOneShot(GetComponent<AudioSource>().clip);
                 GetComponent<Animator>().SetInteger("curLives", curLives);
             }
@@ -221,7 +234,7 @@ public class EnemyControl : MonoBehaviour
         {
             collisionForce = (float)damageFrom.GetComponent<EnemyControl>().GetCollisionForce() / 2f;
         }
-        catch(System.NullReferenceException e)
+        catch(System.NullReferenceException)
         {
             collisionForce = (float)damageFrom.GetComponent<ShieldControl>().CollisionForce;
         }
@@ -234,8 +247,12 @@ public class EnemyControl : MonoBehaviour
             angleInDeg += 180f;
         }
 
+        GetComponent<Rigidbody2D>().velocity = new Vector2(0, 0);
         Vector2 force = new Vector2(xForce, yForce);
         GetComponent<Rigidbody2D>().AddForce(force);
         transform.localEulerAngles = new Vector3(0, 0, angleInDeg);
+        timeFromForce = 0;
+        GetComponent<Rigidbody2D>().drag = 0.5f;
+        hasPath = false;
     }
 }

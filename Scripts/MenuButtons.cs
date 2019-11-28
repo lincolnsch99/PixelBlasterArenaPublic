@@ -3,7 +3,7 @@
 /// File Purpose: MenuButtons is used for assigning listeners to UI buttons that rely
 /// on the PersistentControl object.
 /// 
-/// Date Last Updated: November 12, 2019
+/// Date Last Updated: November 18, 2019
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -36,10 +36,6 @@ public class MenuButtons : MonoBehaviour
             thisButton.onClick.AddListener(PersistentInfo.UnPauseGame);
         else if (ButtonType == "Tutorial")
             thisButton.onClick.AddListener(PersistentInfo.SelectTutorial);
-        else if (ButtonType == "NormalPlayer")
-            thisButton.onClick.AddListener(() => PersistentInfo.SelectPlayerType(PlayerType.NORMAL));
-        else if (ButtonType == "BlasterPlayer")
-            thisButton.onClick.AddListener(() => PersistentInfo.SelectPlayerType(PlayerType.BLASTER));
         else if (ButtonType == "StageCreator")
             thisButton.onClick.AddListener(() => PersistentInfo.LoadScene("StageCreator"));
         else if (ButtonType == "StageSelector")
@@ -48,11 +44,17 @@ public class MenuButtons : MonoBehaviour
             Debug.LogError("Invalid ButtonType");
     }
 
+    /// <summary>
+    /// Plays the UI sound.
+    /// </summary>
     private void Click()
     {
         PersistentInfo.GetComponent<AudioSource>().PlayOneShot(UiClick);
     }
 
+    /// <summary>
+    /// Removes listeners when the button is destroyed (to prevent uncontrollable errors).
+    /// </summary>
     private void OnDestroy()
     {
         Button thisButton = GetComponent<Button>();
